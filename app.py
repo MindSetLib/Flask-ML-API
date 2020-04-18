@@ -1,13 +1,25 @@
-from flask import Flask, request, jsonify
 import h2o
+from flask import Flask, request, jsonify
 
 from process_data import process_input
+
+# For logging
+import logging
+import traceback
+from logging.handlers import RotatingFileHandler
+from time import strftime
 
 app = Flask(__name__)
 
 h2o.init()
 model_glm_poisson = h2o.load_model('models/GLM_model_python_1573818197972_1')
 model_glm_gamma = h2o.load_model('models/GLM_model_python_1573818197972_2')
+
+# Logging
+handler = RotatingFileHandler('app.log', maxBytes=100000, backupCount=5)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(handler)
 
 
 @app.route("/")
@@ -17,7 +29,6 @@ def index():
 
 @app.route("/predict", methods=['POST'])
 def predict():
-
     json_input = request.json
 
     id = json_input['ID']
@@ -36,13 +47,22 @@ def predict():
         'value_Poisson': value_Poisson,
         'value_Gamma': value_Gamma,
         'value_BurningCost': value_BurningCost
-        }
+    }
 
     return jsonify(result)
 
 
 @app.errorhandler(Exception)
 def exceptions(e):
+    current_datatime = strftime('[%Y-%b-%d %H:%M:%S]')
+    error_message = traceback.format_exc()
+    logger.error('%s %s %s %s %s 5xx INTERNAL SERVER ERROR\n%s',
+                 current_datatime,
+                 request.remote_addr,
+                 request.method,
+                 request.scheme,
+                 request.full_path,
+                 error_message)
     return jsonify({'error': 'Internal Server Error'}), 500
 
 
