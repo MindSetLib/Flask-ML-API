@@ -7,7 +7,7 @@ from process_data import process_input
 import logging
 import traceback
 from logging.handlers import RotatingFileHandler
-from time import strftime
+from time import strftime, time
 
 app = Flask(__name__)
 
@@ -31,6 +31,12 @@ def index():
 def predict():
     json_input = request.json
 
+    # Request logging
+    current_datatime = strftime('[%Y-%b-%d %H:%M:%S]')
+    ip_address = request.headers.get("X-Forwarded-For", request.remote_addr)
+    logger.info(f'{current_datatime} request from {ip_address}: {request.json}')
+    start_prediction = time()
+
     id = json_input['ID']
     hf = process_input(json_input)
 
@@ -48,6 +54,12 @@ def predict():
         'value_Gamma': value_Gamma,
         'value_BurningCost': value_BurningCost
     }
+
+    # Response logging
+    end_prediction = time()
+    duration = round(end_prediction - start_prediction, 6)
+    current_datatime = strftime('[%Y-%b-%d %H:%M:%S]')
+    logger.info(f'{current_datatime} predicted for {duration} msec: {result}\n')
 
     return jsonify(result)
 
