@@ -1,0 +1,40 @@
+{% extends "index.html" %}
+{% block title %}Результаты{% endblock %}
+{% block content %}
+    {% if not response.error %}
+    <div class="row d-flex justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header text-center">
+                <h2>Результаты прогноза убытков</h2>
+            </div>
+            <div class="card-body">
+                <p class="card-text">ID клиента: <b>{{ response.ID }}</b></p>
+            <p class="card-text">Частота страховых случаев (value_Poisson): <b>{{ response.value_Poisson|round(2) }}</b></p>
+                <p class="card-text">Средний убыток (value_Gamma): <b>{{ response.value_Gamma|round(2) }}</b></p>
+                <p class="card-text">Убыток (value_BurningCost): <b>{{ response.value_BurningCost|round(2) }}</b></p>
+               <div class="text-center">
+                    <a href="{{ url_for('predict_form') }}" class="btn btn-primary">Назад</a>
+               </div>
+            </div>
+        </div>
+    {% else %}
+        <div class="card">
+        <div class="card-header text-center">
+            <b>Ошибка</b>
+        </div>
+        <div class="card-body">
+            {% if response.error == 'ConnectionError' %}
+                <p class="card-text text-center">Нет связи с ML сервисом</p>
+            {% else %}
+                <p class="card-text text-center">Ошибка ML сервиса</p>
+        {% endif %}
+        <div class="text-center">
+                <a href="{{ url_for('predict_form') }}" class="btn btn-primary">Назад</a>
+        </div>
+        </div>
+        </div>
+    </div>
+    </div>
+    {% endif %}
+{% endblock %}
