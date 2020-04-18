@@ -41,5 +41,10 @@ def predict():
     return jsonify(result)
 
 
+@app.errorhandler(Exception)
+def exceptions(e):
+    return jsonify({'error': 'Internal Server Error'}), 500
+
+
 if __name__ == '__main__':
     app.run(debug=True)
