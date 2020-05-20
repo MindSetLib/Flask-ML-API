@@ -7,7 +7,7 @@
 
 - установка зависимостей:
 ```sh
-pip install -r requirements.txt
+pip3 install -r requirements.txt
 ```
 
 ### Запуск сервера приложений
@@ -18,7 +18,7 @@ gunicorn -w 4 -b 127.0.0.1:5000 app:app
 
 ### Запуск тестов
 ```sh
-python -m pytest -vv
+python3 -m pytest -vv
 ```
 
 ### Для установки на Heroku
