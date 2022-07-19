@@ -1,7 +1,12 @@
-import h2o
+import os
+
+# from insolver import InsolverDataFrame
+# from insolver.transforms import InsolverTransform, load_transforms
+# from insolver.wrappers import InsolverGLMWrapper, InsolverGBMWrapper
+# from insolver.serving import utils
+
 from flask import Flask, request, jsonify
 
-from process_data import process_input
 
 # For logging
 import logging
@@ -11,15 +16,18 @@ from time import strftime, time
 
 app = Flask(__name__)
 
-h2o.init()
-model_glm_poisson = h2o.load_model('models/GLM_model_python_1573818197972_1')
-model_glm_gamma = h2o.load_model('models/GLM_model_python_1573818197972_2')
-
 # Logging
-handler = RotatingFileHandler('app.log', maxBytes=100000, backupCount=5)
+handler = RotatingFileHandler('logs/app.log', maxBytes=100000, backupCount=5)
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logger.addHandler(handler)
+
+
+# model initization
+# model_path = os.environ['model_path']
+# transforms_path = os.environ['transforms_path']
+
+# model = utils.load_pickle_model(model_path) 
 
 
 @app.route("/")
@@ -27,32 +35,28 @@ def index():
     return "API for predict service"
 
 
-@app.route("/predict", methods=['POST'])
-def predict():
-    json_input = request.json
-
+@app.route("/healthcheck", methods=['GET'])
+def healthcheck():
     # Request logging
     current_datatime = strftime('[%Y-%b-%d %H:%M:%S]')
     ip_address = request.headers.get("X-Forwarded-For", request.remote_addr)
-    logger.info(f'{current_datatime} request from {ip_address}: {request.json}')
+    logger.info(f'{current_datatime} request from {ip_address}: healthcheck')
+
+    return jsonify({'status': 'ok'})
+
+
+@app.route("/predict", methods=['POST'])
+def predict():
+    # json_input = request.json
+
+    # Request logging
+    current_datatime = strftime('[%Y-%b-%d %H:%M:%S]')
+    # ip_address = request.headers.get("X-Forwarded-For", request.remote_addr)
+    # logger.info(f'{current_datatime} request from {ip_address}: {request.json}')
     start_prediction = time()
 
-    id = json_input['ID']
-    hf = process_input(json_input)
-
-    prediction_Poisson = model_glm_poisson.predict(hf)
-    value_Poisson = prediction_Poisson.as_data_frame()['predict'][0]
-
-    prediction_Gamma = model_glm_gamma.predict(hf)
-    value_Gamma = prediction_Gamma.as_data_frame()['predict'][0]
-
-    value_BurningCost = value_Poisson * value_Gamma
-
     result = {
-        'ID': id,
-        'value_Poisson': value_Poisson,
-        'value_Gamma': value_Gamma,
-        'value_BurningCost': value_BurningCost
+        'status': 'ok',
     }
 
     # Response logging
