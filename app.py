@@ -1,38 +1,45 @@
+from time import strftime, time
 import os
+import logging
+import traceback
 
-# from insolver import InsolverDataFrame
-# from insolver.transforms import InsolverTransform, load_transforms
-# from insolver.wrappers import InsolverGLMWrapper, InsolverGBMWrapper
-# from insolver.serving import utils
+from dotenv import load_dotenv
+
+from insolver import InsolverDataFrame
+from insolver.transforms import InsolverTransform, load_transforms
+from insolver.wrappers import InsolverGLMWrapper, InsolverGBMWrapper
+from insolver.serving import utils
 
 from flask import Flask, request, jsonify
 
+import pandas as pd
 
-# For logging
-import logging
-import traceback
-from logging.handlers import RotatingFileHandler
-from time import strftime, time
+# load dotenv data
+load_dotenv()
 
 app = Flask(__name__)
 
 # Logging
-handler = RotatingFileHandler('logs/app.log', maxBytes=100000, backupCount=5)
+handler = logging.StreamHandler()
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 logger.addHandler(handler)
 
 
 # model initization
-# model_path = os.environ['model_path']
-# transforms_path = os.environ['transforms_path']
+model_path = os.environ.get('model_path')
+transforms_path = os.environ.get('transforms_path')
 
-# model = utils.load_pickle_model(model_path) 
+model = utils.load_pickle_model(model_path) 
+if model and model.algo == 'gbm':
+    model = InsolverGBMWrapper(backend=model.backend, load_path=model_path)
+elif model and model.algo == 'glm':
+    model = InsolverGLMWrapper(backend='sklearn', load_path=model_path)
+else:
+    model = InsolverGLMWrapper(backend='h2o', load_path=model_path)
 
-
-@app.route("/")
-def index():
-    return "API for predict service"
+# load transformations
+tranforms = load_transforms(transforms_path)
 
 
 @app.route("/healthcheck", methods=['GET'])
@@ -47,16 +54,25 @@ def healthcheck():
 
 @app.route("/predict", methods=['POST'])
 def predict():
-    # json_input = request.json
-
     # Request logging
     current_datatime = strftime('[%Y-%b-%d %H:%M:%S]')
-    # ip_address = request.headers.get("X-Forwarded-For", request.remote_addr)
-    # logger.info(f'{current_datatime} request from {ip_address}: {request.json}')
+    ip_address = request.headers.get("X-Forwarded-For", request.remote_addr)
+    logger.info(f'{current_datatime} request from {ip_address}: {request.json}')
     start_prediction = time()
 
+    # json request
+    data_dict = request.json
+    df = pd.DataFrame(data_dict['df'], index=[0])
+    insdataframe = InsolverDataFrame(df)
+    # Apply transformations
+    instransforms = InsolverTransform(insdataframe, tranforms)
+    instransforms.ins_transform()
+
+    # Prediction
+    predicted = model.predict(instransforms)
+
     result = {
-        'status': 'ok',
+        'predicted': predicted.tolist()
     }
 
     # Response logging
