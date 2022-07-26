@@ -35,6 +35,7 @@ kiwisolver==1.4.4
 lightgbm==3.3.2
 lime==0.2.0.1
 llvmlite==0.38.1
+locust==2.10.1
 MarkupSafe==2.0.1
 matplotlib==3.5.2
 missingno==0.5.1
